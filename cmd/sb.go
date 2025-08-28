@@ -10,6 +10,7 @@ import (
 
 // main is the entry point for the sb CLI tool.
 // It loads configuration, switches to the repo directory, and optionally checks out a branch.
+
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -18,28 +19,19 @@ func main() {
 	}
 
 	args := os.Args[1:]
-	if len(args) == 0 {
-		// No slug provided, just switch to repo directory
-		changeDirAndBranch(cfg.Repo, "")
-		return
+	var branch string
+	if len(args) > 0 {
+		slug := args[0]
+		var ok bool
+		branch, ok = cfg.Slugs[slug]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "Unknown branch slug: %s\n", slug)
+			os.Exit(1)
+		}
 	}
 
-	slug := args[0]
-	branch, ok := cfg.Slugs[slug]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Unknown branch slug: %s\n", slug)
-		os.Exit(1)
-	}
-	changeDirAndBranch(cfg.Repo, branch)
-}
-
-// changeDir switches to the given directory and opens a new shell.
-// dir: absolute or relative path to the directory.
-// changeDirAndBranch switches to the given directory and optionally checks out a branch, then opens a new shell.
-// dir: absolute or relative path to the directory.
-// branch: name of the branch to checkout (empty for none).
-func changeDirAndBranch(dir string, branch string) {
 	// Expand ~ to home directory if present
+	dir := cfg.Repo
 	if len(dir) > 1 && dir[:2] == "~/" {
 		home, err := os.UserHomeDir()
 		if err == nil {
@@ -51,12 +43,24 @@ func changeDirAndBranch(dir string, branch string) {
 		fmt.Fprintf(os.Stderr, "Invalid repo path: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Switching to repo directory: %s\n", absDir)
+
+	// If running in a shell function, print info for wrapper
+	if os.Getenv("SB_SHELL_WRAPPER") == "1" {
+		fmt.Printf("DIR:%s\n", absDir)
+		if branch != "" {
+			fmt.Printf("BRANCH:%s\n", branch)
+		}
+		return
+	}
+
+	// Otherwise, launch a subshell in the repo directory
 	var cmdStr string
 	if branch != "" {
+		fmt.Printf("Switching to repo directory: %s\n", absDir)
 		fmt.Printf("Checking out branch: %s\n", branch)
 		cmdStr = fmt.Sprintf("cd '%s' && git checkout '%s'; bash", absDir, branch)
 	} else {
+		fmt.Printf("Switching to repo directory: %s\n", absDir)
 		cmdStr = fmt.Sprintf("cd '%s'; bash", absDir)
 	}
 	cmd := exec.Command("bash", "-c", cmdStr)
