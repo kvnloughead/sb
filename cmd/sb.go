@@ -55,9 +55,9 @@ func changeDirAndBranch(dir string, branch string) {
 	var cmdStr string
 	if branch != "" {
 		fmt.Printf("Checking out branch: %s\n", branch)
-		cmdStr = fmt.Sprintf("cd '%s' && git checkout '%s'; exec $SHELL", absDir, branch)
+		cmdStr = fmt.Sprintf("cd '%s' && git checkout '%s'; bash", absDir, branch)
 	} else {
-		cmdStr = fmt.Sprintf("cd '%s'; exec $SHELL", absDir)
+		cmdStr = fmt.Sprintf("cd '%s'; bash", absDir)
 	}
 	cmd := exec.Command("bash", "-c", cmdStr)
 	cmd.Stdin = os.Stdin
