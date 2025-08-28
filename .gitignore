@@ -1,0 +1,40 @@
+# Environment files
+.env*
+
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+sb
+
+# Output of build tools
+bin/
+out/
+
+# Go workspace and build artifacts
+*.out
+*.o
+*.a
+*.cgo1.go
+*.cgo2.c
+_obj/
+_test/
+
+# Dependency directories
+vendor/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Config/example files
+sb.yaml
+example_sb.yaml
