@@ -2,6 +2,9 @@ BINARY=sb
 SRC=./cmd/sb.go
 PREFIX=$(HOME)/.local/bin
 
+# ============================================================
+# BUILD
+# ============================================================
 
 .PHONY: build install build-defaults test help confirm
 ## build-defaults: generate Go source from defaults.yaml
@@ -17,6 +20,17 @@ install: build
 	install -d $(PREFIX)
 	install $(BINARY) $(PREFIX)/$(BINARY)
 	rm $(BINARY)
+
+.PHONY: build-all
+## build-all: build binaries for macOS, Linux, and Windows (amd64)
+build-all: build-defaults build
+	GOOS=darwin GOARCH=amd64 go build -o bin/sb-darwin-amd64 ./cmd/sb.go
+	GOOS=linux GOARCH=amd64 go build -o bin/sb-linux-amd64 ./cmd/sb.go
+	GOOS=windows GOARCH=amd64 go build -o bin/sb-windows-amd64.exe ./cmd/sb.go
+
+# ============================================================
+# TESTS
+# ============================================================		
 	
 ## test: run Go tests
 test:
