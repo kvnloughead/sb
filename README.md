@@ -15,6 +15,10 @@ sb           # switches to the repo directory
 sb dev       # switches to the repo directory and checks out the branch mapped to 'dev'
 ```
 
+## Configuration is not necessary
+
+A default configuration is used that assumes the canonicals repo is in `~/tripleten/se-canonicals_en`, and provides aliases for the commonly referenced branches. These default values can be found in [defaults.yaml](defaults.yaml).
+
 ## Configuration
 
 Create a config file (default: `~/.config/sb.yaml`) with the following structure:
@@ -35,10 +39,14 @@ You can specify a custom config file location with the `SB_CONFIG` environment v
 ## Installation
 
 ```sh
-go build -o sb ./cmd/sb.go && mv sb ~/.local/bin
+# Recommended: installs binary to ~/.local/bin
+make install
+
+# Manual
+go build -o sb ./cmd/sb.go && mv sb /directory/in/path
 ```
 
-Make sure that the directory you move it to is in your PATH.
+Make sure that the directory you install to is in your path.
 
 ## License
 MIT

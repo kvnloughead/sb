@@ -21,6 +21,7 @@ out/
 *.cgo2.c
 _obj/
 _test/
+generated_defaults.go
 
 # Dependency directories
 vendor/
@@ -37,3 +38,4 @@ vendor/
 
 # Config/example files
 sb.yaml
+
