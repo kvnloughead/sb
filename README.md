@@ -6,7 +6,7 @@ A simple Go command-line tool to switch to a git repository directory and option
 - `sb` — switches to the repo directory.
 - `sb [branchSlug]` — switches to the repo directory and checks out the corresponding branch.
 - Configurable mapping of slug to branch and repo path.
-- Config file location is user-defined, defaulting to `~/.config/sb.yaml`.
+- Config file location is user-defined, defaulting to `~/.config/sb.yaml`. To place the file somewhere else, set the `SB_CONFIG` environmental variable.
 
 ## Usage
 
