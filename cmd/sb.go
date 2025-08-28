@@ -20,7 +20,7 @@ func main() {
 	args := os.Args[1:]
 	if len(args) == 0 {
 		// No slug provided, just switch to repo directory
-		changeDir(cfg.Repo)
+		changeDirAndBranch(cfg.Repo, "")
 		return
 	}
 
@@ -30,31 +30,36 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Unknown branch slug: %s\n", slug)
 		os.Exit(1)
 	}
-	changeDir(cfg.Repo)
-	checkoutBranch(branch)
+	changeDirAndBranch(cfg.Repo, branch)
 }
 
 // changeDir switches to the given directory and opens a new shell.
 // dir: absolute or relative path to the directory.
-func changeDir(dir string) {
+// changeDirAndBranch switches to the given directory and optionally checks out a branch, then opens a new shell.
+// dir: absolute or relative path to the directory.
+// branch: name of the branch to checkout (empty for none).
+func changeDirAndBranch(dir string, branch string) {
+	// Expand ~ to home directory if present
+	if len(dir) > 1 && dir[:2] == "~/" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			dir = filepath.Join(home, dir[2:])
+		}
+	}
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid repo path: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("Switching to repo directory: %s\n", absDir)
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("cd '%s'; exec $SHELL", absDir))
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-}
-
-// checkoutBranch checks out the given branch in the current repo.
-// branch: name of the branch to checkout.
-func checkoutBranch(branch string) {
-	fmt.Printf("Checking out branch: %s\n", branch)
-	cmd := exec.Command("git", "checkout", branch)
+	var cmdStr string
+	if branch != "" {
+		fmt.Printf("Checking out branch: %s\n", branch)
+		cmdStr = fmt.Sprintf("cd '%s' && git checkout '%s'; exec $SHELL", absDir, branch)
+	} else {
+		cmdStr = fmt.Sprintf("cd '%s'; exec $SHELL", absDir)
+	}
+	cmd := exec.Command("bash", "-c", cmdStr)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
