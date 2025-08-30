@@ -44,6 +44,8 @@ func runSBWithInput(t *testing.T, input string, env []string, args ...string) (s
 }
 
 func TestCompletionsOutputsAliases(t *testing.T) {
+	// Ensure repo dir exists for validation
+	_ = os.MkdirAll("/tmp/repo", 0o755)
 	cfg := "repo: /tmp/repo\naliases:\n  p1: branch1\n  p2: branch2\n"
 	// Supply config via SB_CONFIG env
 	tmp := t.TempDir()
@@ -61,6 +63,8 @@ func TestCompletionsOutputsAliases(t *testing.T) {
 }
 
 func TestShellWrapperProtocol(t *testing.T) {
+	// Ensure repo dir exists for validation
+	_ = os.MkdirAll("/tmp/repo", 0o755)
 	cfg := "repo: /tmp/repo\naliases:\n  d: dev\n"
 	tmp := t.TempDir()
 	cfgPath := tmp + "/sb.yaml"

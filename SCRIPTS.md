@@ -18,14 +18,41 @@ sb() {
       return
       ;;
   esac
-  local out dir branch
-  out=$(SB_SHELL_WRAPPER=1 command sb "$@")
-  dir=$(echo "$out" | grep '^DIR:' | cut -d: -f2- | xargs)
-  branch=$(echo "$out" | grep '^BRANCH:' | cut -d: -f2- | xargs)
-  [ -n "$dir" ] || return
-  cd "$dir" || return
+
+  # Capture both stdout and stderr safely (no process substitution)
+  local out status
+  out=$(SB_SHELL_WRAPPER=1 command sb "$@" 2>&1)
+  status=$?
+
+  # Print any non-protocol lines to stderr with prefix so they're visible
+  printf "%s\n" "$out" | grep -vE '^(DIR:|BRANCH:)' | sed 's/^/[sb]/' 1>&2
+
+  # If sb failed, bubble up the failure
+  if [ $status -ne 0 ]; then
+    return $status
+  fi
+
+  # Extract protocol lines
+  local dir branch
+  dir=$(printf "%s\n" "$out" | grep '^DIR:' | tail -n1 | cut -d: -f2- | xargs)
+  branch=$(printf "%s\n" "$out" | grep '^BRANCH:' | tail -n1 | cut -d: -f2- | xargs)
+
+  if [ -z "$dir" ]; then
+    echo "[sb] No DIR in output; nothing to do" 1>&2
+    return 1
+  fi
+
+  # Change directory; report failure
+  if ! cd "$dir"; then
+    echo "[sb] Failed to cd to $dir" 1>&2
+    return 1
+  fi
+
   if [ -n "$branch" ]; then
-    git checkout "$branch"
+    if ! git checkout "$branch"; then
+      echo "[sb] git checkout $branch failed" 1>&2
+      return 1
+    fi
   fi
 }
 ```
