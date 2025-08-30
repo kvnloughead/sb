@@ -16,7 +16,6 @@ build:
 install: build
 	install -d $(PREFIX)
 	install $(BINARY) $(PREFIX)/$(BINARY)
-	rm $(BINARY)
 
 .PHONY: build-all
 ## build-all: build binaries for macOS, Linux, and Windows (amd64)

@@ -11,9 +11,10 @@ A simple Go command-line tool to switch to a git repository directory and option
 
 ## Installation
 
-- Download the [latest release](https://github.com/kvnloughead/sb/releases/tag/v0.1.0) for your OS
+- Download the latest release for your OS
 - Move it to `~/.local/bin` or another directory in `$PATH`.
-- Optionally, add the shell function below, to prevent shell history disruption when changing directories
+- Optionally, run `sb install` to set up a starter config and confirm PATH setup
+- Optionally, add the shell function below to prevent shell history disruption when changing directories
 
 ## Usage
 
@@ -22,13 +23,11 @@ sb           # switches to the repo directory
 sb dev       # switches to the repo directory and checks out the branch mapped to 'dev'
 ```
 
-## Configuration is not necessary
-
-A default configuration is used that assumes the canonicals repo is in `~/tripleten/se-canonicals_en`, and provides aliases for the commonly referenced branches. These default values can be found in [defaults.yaml](defaults.yaml).
-
 ## Configuration
 
-Create a config file (default: `~/.config/sb.yaml`) with the following structure:
+Create a config file (default: `~/.config/sb.yaml`) with the following structure or run `sb install` to generate one:
+
+Example:
 
 ```yaml
 repo: /path/to/your/repo
@@ -43,17 +42,15 @@ slugs:
 
 You can specify a custom config file location with the `SB_CONFIG` environment variable.
 
-## Installation
+## Building from source
 
 ```sh
-# Recommended: installs binary to ~/.local/bin
-make install
-
-# Manual
-go build -o sb ./cmd/sb.go && mv sb /directory/in/path
+make build      # build local binary ./sb
+make install    # install to ~/.local/bin
+make build-all  # cross-compile binaries into ./bin
 ```
 
-Make sure that the directory you install to is in your path.
+Ensure the install directory is on your PATH.
 
 ## Preserving shell history
 
@@ -62,11 +59,18 @@ The default installation spawns a subshell which doesn't share the previous proc
 ```bash
 # sb shell function to preserve history after switching directory
 sb() {
-  local out
+  # Bypass wrapper for commands that must print directly
+  case "$1" in
+    install|-h|--help|completions)
+      command sb "$@"
+      return
+      ;;
+  esac
+  local out dir branch
   out=$(SB_SHELL_WRAPPER=1 command sb "$@")
-  local dir branch
   dir=$(echo "$out" | grep '^DIR:' | cut -d: -f2- | xargs)
   branch=$(echo "$out" | grep '^BRANCH:' | cut -d: -f2- | xargs)
+  [ -n "$dir" ] || return
   cd "$dir" || return
   if [ -n "$branch" ]; then
     git checkout "$branch"

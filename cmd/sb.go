@@ -25,7 +25,6 @@ func main() {
 	// Handle completions command
 	if len(args) > 0 && args[0] == "completions" {
 		cfg, err := config.LoadConfig()
-		fmt.Println("loading")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 			os.Exit(1)
@@ -101,6 +100,24 @@ func runInstaller() {
 
 	// Get current executable path
 	execPath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Check if we're already installed (trying to reinstall)
+	if strings.Contains(execPath, ".local/bin") || strings.Contains(execPath, "/usr/local/bin") || strings.Contains(execPath, "/usr/bin") {
+		fmt.Println("It looks like sb is already installed.")
+		fmt.Printf("Reinstall sb? [y/N]: ")
+		response := readInput()
+		if !(strings.ToLower(response) == "y" || strings.ToLower(response) == "yes") {
+			fmt.Println("Installation cancelled.")
+			return
+		}
+	}
+
+	// Get current executable path
+	execPath, err = os.Executable()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
 		os.Exit(1)
