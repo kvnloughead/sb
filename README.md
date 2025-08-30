@@ -1,12 +1,12 @@
 # sb CLI Tool
 
-A simple Go command-line tool to switch to a git repository directory and optionally check out a branch using a slug.
+A simple Go command-line tool to switch to a git repository directory and optionally check out a branch using an alias.
 
 ## Features
 
 - `sb` — switches to the repo directory.
-- `sb [branchSlug]` — switches to the repo directory and checks out the corresponding branch.
-- Configurable mapping of slug to branch and repo path.
+- `sb [alias]` — switches to the repo directory and checks out the corresponding branch.
+- Configurable mapping of alias to branch and repo path.
 - Config file location is user-defined, defaulting to `~/.config/sb.yaml`. To place the file somewhere else, set the `SB_CONFIG` environmental variable.
 
 ## Installation
@@ -49,37 +49,47 @@ Then either run `sb install` to generate a starter config, or create the config 
 
 ```sh
 sb           # switches to the repo directory
-sb dev       # switches to the repo directory and checks out the branch mapped to 'dev'
+sb dev       # switches to the repo directory and checks out the branch mapped to alias 'dev'
 ```
 
 ## Configuration
 
 Create a config file (default: `~/.config/sb.yaml`) with the following structure, or run `sb install` to generate one:
 
-Example:
+Example (aliases):
 
 ```yaml
 repo: /path/to/your/repo
-slugs:
+aliases:
   dev: development
   main: main
   feat: feature-branch
 ```
 
 - `repo`: Absolute path to your git repository.
-- `slugs`: Map of slug to branch name.
+- `aliases`: Map of alias to branch name.
 
 You can specify a custom config file location with the `SB_CONFIG` environment variable.
 
 ## Shell integration and completions
 
-To preserve shell history and enable tab-completions for branch slugs, use the scripts in [SCRIPTS.md](SCRIPTS.md).
+To preserve shell history and enable tab-completions for branch aliases, use the scripts in [SCRIPTS.md](SCRIPTS.md).
 
 Included:
 - A wrapper function that preserves history when changing directories
-- Bash completions that list your configured slugs
+- Bash completions that list your configured aliases
 
 Add them to your shell config (e.g., `~/.bashrc`, `~/.bash_profile`, or `~/.zshrc`) and reload your shell.
+
+## Local development: block pushes if tests fail
+
+This repo includes a local git pre-push hook that runs tests and prevents a push if they fail. Enable it once per clone:
+
+```sh
+make hooks
+```
+
+After that, every `git push` will run `go test ./...` first and abort on failures.
 
 ## License
 MIT

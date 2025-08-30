@@ -29,9 +29,9 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 			os.Exit(1)
 		}
-		// Print all slugs for shell completion
-		for slug := range cfg.Slugs {
-			fmt.Println(slug)
+		// Print all aliases for shell completion
+		for alias := range cfg.Aliases {
+			fmt.Println(alias)
 		}
 		return
 	}
@@ -44,11 +44,11 @@ func main() {
 
 	var branch string
 	if len(args) > 0 {
-		slug := args[0]
+		alias := args[0]
 		var ok bool
-		branch, ok = cfg.Slugs[slug]
+		branch, ok = cfg.Aliases[alias]
 		if !ok {
-			fmt.Fprintf(os.Stderr, "Unknown branch slug: %s\n", slug)
+			fmt.Fprintf(os.Stderr, "Unknown alias: %s\n", alias)
 			os.Exit(1)
 		}
 	}
@@ -160,14 +160,14 @@ func runInstaller() {
 		fmt.Fprintf(os.Stderr, "Error creating config directory: %v\n", err)
 		os.Exit(1)
 	}
-	// Create config file with example
+	// Create config file with example (use aliases)
 	configContent := fmt.Sprintf(`repo: %s
-slugs:
-  # Add your branch mappings here
-  # Examples:
-  # main: main
-  # dev: development
-  # feature: feature-branch
+aliases:
+	# Add your branch aliases here
+	# Examples:
+	# main: main
+	# dev: development
+	# feature: feature-branch
 `, repoPath)
 	if err := os.WriteFile(configOutPath, []byte(configContent), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating config file: %v\n", err)

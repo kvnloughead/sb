@@ -43,8 +43,8 @@ func runSBWithInput(t *testing.T, input string, env []string, args ...string) (s
 	return stdout.String(), stderr.String(), err
 }
 
-func TestCompletionsOutputsSlugs(t *testing.T) {
-	cfg := "repo: /tmp/repo\nslugs:\n  p1: branch1\n  p2: branch2\n"
+func TestCompletionsOutputsAliases(t *testing.T) {
+	cfg := "repo: /tmp/repo\naliases:\n  p1: branch1\n  p2: branch2\n"
 	// Supply config via SB_CONFIG env
 	tmp := t.TempDir()
 	cfgPath := tmp + "/sb.yaml"
@@ -56,18 +56,18 @@ func TestCompletionsOutputsSlugs(t *testing.T) {
 		t.Fatalf("completions err: %v, stderr=%s", err, stderr)
 	}
 	if !strings.Contains(out, "p1") || !strings.Contains(out, "p2") {
-		t.Fatalf("expected slugs in output, got: %q", out)
+		t.Fatalf("expected aliases in output, got: %q", out)
 	}
 }
 
 func TestShellWrapperProtocol(t *testing.T) {
-	cfg := "repo: /tmp/repo\nslugs:\n  d: dev\n"
+	cfg := "repo: /tmp/repo\naliases:\n  d: dev\n"
 	tmp := t.TempDir()
 	cfgPath := tmp + "/sb.yaml"
 	if err := os.WriteFile(cfgPath, []byte(cfg), 0644); err != nil {
 		t.Fatalf("write cfg: %v", err)
 	}
-	// No slug
+	// No alias
 	out, stderr, err := runSB(t, []string{"SB_CONFIG=" + cfgPath, "SB_SHELL_WRAPPER=1"})
 	if err != nil {
 		t.Fatalf("wrapper err: %v, stderr=%s", err, stderr)
@@ -75,10 +75,10 @@ func TestShellWrapperProtocol(t *testing.T) {
 	if !strings.Contains(out, "DIR:/tmp/repo") {
 		t.Fatalf("expected DIR line, got: %q", out)
 	}
-	// With slug
+	// With alias
 	out, stderr, err = runSB(t, []string{"SB_CONFIG=" + cfgPath, "SB_SHELL_WRAPPER=1"}, "d")
 	if err != nil {
-		t.Fatalf("wrapper with slug err: %v, stderr=%s", err, stderr)
+		t.Fatalf("wrapper with alias err: %v, stderr=%s", err, stderr)
 	}
 	if !strings.Contains(out, "BRANCH:dev") {
 		t.Fatalf("expected BRANCH line, got: %q", out)

@@ -9,9 +9,10 @@ import (
 )
 
 // Config holds the configuration for the sb CLI tool.
+// Aliases maps a short alias (e.g., "dev") to the full git branch name.
 type Config struct {
-	Repo  string            `yaml:"repo"`  // Absolute path to the git repository
-	Slugs map[string]string `yaml:"slugs"` // Map of slug to branch name
+	Repo    string            `yaml:"repo"`    // Absolute path to the git repository
+	Aliases map[string]string `yaml:"aliases"` // Map of alias to branch name
 }
 
 // LoadConfig loads the configuration from the given path, or the default

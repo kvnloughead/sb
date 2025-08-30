@@ -16,10 +16,10 @@ func writeTempConfig(t *testing.T, content string) string {
 	return p
 }
 
-func TestLoadConfigFromEnv(t *testing.T) {
+func TestLoadConfigFromEnv_Aliases(t *testing.T) {
 	cfgContent := "" +
 		"repo: /tmp/repo\n" +
-		"slugs:\n" +
+		"aliases:\n" +
 		"  dev: development\n" +
 		"  main: main\n"
 	p := writeTempConfig(t, cfgContent)
@@ -32,8 +32,8 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	if cfg.Repo != "/tmp/repo" {
 		t.Fatalf("expected repo=/tmp/repo, got %q", cfg.Repo)
 	}
-	if cfg.Slugs["dev"] != "development" || cfg.Slugs["main"] != "main" {
-		t.Fatalf("unexpected slugs: %#v", cfg.Slugs)
+	if cfg.Aliases["dev"] != "development" || cfg.Aliases["main"] != "main" {
+		t.Fatalf("unexpected aliases: %#v", cfg.Aliases)
 	}
 }
 
@@ -45,10 +45,23 @@ func TestLoadConfigMissingFile(t *testing.T) {
 }
 
 func TestLoadConfigMissingRepo(t *testing.T) {
-	cfgContent := "slugs:\n  a: b\n"
+	cfgContent := "aliases:\n  a: b\n"
 	p := writeTempConfig(t, cfgContent)
 	t.Setenv("SB_CONFIG", p)
 	if _, err := LoadConfig(); err == nil {
 		t.Fatalf("expected error for missing repo field")
+	}
+}
+
+func TestLoadConfig_ContainsAliases(t *testing.T) {
+	cfgContent := "repo: /tmp/repo\naliases:\n  dev: development\n"
+	p := writeTempConfig(t, cfgContent)
+	t.Setenv("SB_CONFIG", p)
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig returned error: %v", err)
+	}
+	if cfg.Aliases["dev"] != "development" {
+		t.Fatalf("expected alias mapping, got: %#v", cfg.Aliases)
 	}
 }
