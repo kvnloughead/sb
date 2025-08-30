@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -14,34 +15,30 @@ type Config struct {
 }
 
 // LoadConfig loads the configuration from the given path, or the default
-// location (~/.config/sb.yaml). If the config file can't be found or is
-// invalid, the (sensible) default values from defaults.go are used.
+// location (~/.config/sb.yaml). Returns an error if no config file is found.
 func LoadConfig() (*Config, error) {
 	configPath := os.Getenv("SB_CONFIG")
 	if configPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			// If we can't get the home dir, just use defaults
-			return &DefaultConfig, nil
+			return nil, fmt.Errorf("unable to get home directory: %w", err)
 		}
 		configPath = filepath.Join(home, ".config", "sb.yaml")
 	}
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		// If config file not found, use defaults
-		return &DefaultConfig, nil
+		return nil, fmt.Errorf("config file not found at %s (run 'sb install' to create it): %w", configPath, err)
 	}
-	var cfg Config = DefaultConfig
+
+	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		// If config file is invalid, use defaults
-		return &DefaultConfig, nil
+		return nil, fmt.Errorf("error parsing config file: %w", err)
 	}
-	// Fill missing values from defaults
+
 	if cfg.Repo == "" {
-		cfg.Repo = DefaultConfig.Repo
+		return nil, fmt.Errorf("repo field is required in config file")
 	}
-	if len(cfg.Slugs) == 0 {
-		cfg.Slugs = DefaultConfig.Slugs
-	}
+
 	return &cfg, nil
 }

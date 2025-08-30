@@ -6,13 +6,10 @@ PREFIX=$(HOME)/.local/bin
 # BUILD
 # ============================================================
 
-.PHONY: build install build-defaults test help confirm
-## build-defaults: generate Go source from defaults.yaml
-build-defaults:
-	go run scripts/gen_defaults.go defaults.yaml config/generated_defaults.go
+.PHONY: build install test help confirm
 
 ## build: build the binary
-build: build-defaults
+build:
 	go build -o $(BINARY) $(SRC)
 
 ## install: build the binary and install it to /.local/bin
@@ -23,7 +20,8 @@ install: build
 
 .PHONY: build-all
 ## build-all: build binaries for macOS, Linux, and Windows (amd64)
-build-all: build-defaults build
+build-all: build
+	mkdir -p bin
 	GOOS=darwin GOARCH=amd64 go build -o bin/sb-darwin-amd64 ./cmd/sb.go
 	GOOS=linux GOARCH=amd64 go build -o bin/sb-linux-amd64 ./cmd/sb.go
 	GOOS=windows GOARCH=amd64 go build -o bin/sb-windows-amd64.exe ./cmd/sb.go
