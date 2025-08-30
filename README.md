@@ -11,10 +11,39 @@ A simple Go command-line tool to switch to a git repository directory and option
 
 ## Installation
 
-- Download the latest release for your OS
-- Move it to `~/.local/bin` or another directory in `$PATH`.
-- Optionally, run `sb install` to set up a starter config and confirm PATH setup
-- Optionally, add the shell function below to prevent shell history disruption when changing directories
+### Option A: Installer (recommended)
+
+- If you're in this repo, you can run it directly: `./sb install`
+- If the binary is already on your PATH, run: `sb install`
+
+The installer will:
+- Create a starter config at `~/.config/sb.yaml` (or your chosen location)
+- Copy the binary to an install directory (default: `~/.local/bin`)
+- Optionally open the config in your editor
+
+When finished, ensure the chosen install directory is on your PATH.
+
+### Option B: Manual installation from source
+
+Prerequisites: Go toolchain installed.
+
+Using the Makefile:
+
+```sh
+make build      # builds local binary ./sb
+make install    # installs to ~/.local/bin
+make build-all  # cross-compile binaries into ./bin
+```
+
+Or directly via Go:
+
+```sh
+go build -o sb ./cmd/sb.go
+install -d ~/.local/bin
+install sb ~/.local/bin/sb
+```
+
+Then either run `sb install` to generate a starter config, or create the config file manually (see below).
 
 ## Usage
 
@@ -25,7 +54,7 @@ sb dev       # switches to the repo directory and checks out the branch mapped t
 
 ## Configuration
 
-Create a config file (default: `~/.config/sb.yaml`) with the following structure or run `sb install` to generate one:
+Create a config file (default: `~/.config/sb.yaml`) with the following structure, or run `sb install` to generate one:
 
 Example:
 
@@ -42,41 +71,15 @@ slugs:
 
 You can specify a custom config file location with the `SB_CONFIG` environment variable.
 
-## Building from source
+## Shell integration and completions
 
-```sh
-make build      # build local binary ./sb
-make install    # install to ~/.local/bin
-make build-all  # cross-compile binaries into ./bin
-```
+To preserve shell history and enable tab-completions for branch slugs, use the scripts in [SCRIPTS.md](SCRIPTS.md).
 
-Ensure the install directory is on your PATH.
+Included:
+- A wrapper function that preserves history when changing directories
+- Bash completions that list your configured slugs
 
-## Preserving shell history
-
-The default installation spawns a subshell which doesn't share the previous process's history. To preserve the history, add this script to `.bashrc`, `.bash_profile`, or an analogous file for your shell. Then source the file, with `source /path/to/file`. I've only tested this function on Bash, but it should work on zsh as well.
-
-```bash
-# sb shell function to preserve history after switching directory
-sb() {
-  # Bypass wrapper for commands that must print directly
-  case "$1" in
-    install|-h|--help|completions)
-      command sb "$@"
-      return
-      ;;
-  esac
-  local out dir branch
-  out=$(SB_SHELL_WRAPPER=1 command sb "$@")
-  dir=$(echo "$out" | grep '^DIR:' | cut -d: -f2- | xargs)
-  branch=$(echo "$out" | grep '^BRANCH:' | cut -d: -f2- | xargs)
-  [ -n "$dir" ] || return
-  cd "$dir" || return
-  if [ -n "$branch" ]; then
-    git checkout "$branch"
-  fi
-}
-```
+Add them to your shell config (e.g., `~/.bashrc`, `~/.bash_profile`, or `~/.zshrc`) and reload your shell.
 
 ## License
 MIT
