@@ -148,17 +148,18 @@ func runInstaller() {
 		editor = "code"
 	}
 
-	// Create config directory
-	home, _ := os.UserHomeDir()
-	configDir := filepath.Join(home, ".config")
-	configPath := filepath.Join(configDir, "sb.yaml")
-
-	err = os.MkdirAll(configDir, 0755)
-	if err != nil {
+	// Create config directory and file
+	// If SB_CONFIG is set, honor it; otherwise default to ~/.config/sb.yaml
+	configOutPath := os.Getenv("SB_CONFIG")
+	if strings.TrimSpace(configOutPath) == "" {
+		home2, _ := os.UserHomeDir()
+		configOutPath = filepath.Join(home2, ".config", "sb.yaml")
+	}
+	configDir := filepath.Dir(configOutPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating config directory: %v\n", err)
 		os.Exit(1)
 	}
-
 	// Create config file with example
 	configContent := fmt.Sprintf(`repo: %s
 slugs:
@@ -168,12 +169,11 @@ slugs:
   # dev: development
   # feature: feature-branch
 `, repoPath)
-
-	err = os.WriteFile(configPath, []byte(configContent), 0644)
-	if err != nil {
+	if err := os.WriteFile(configOutPath, []byte(configContent), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating config file: %v\n", err)
 		os.Exit(1)
 	}
+	fmt.Printf("✓ Config created at: %s\n", configOutPath)
 
 	// Install binary
 	err = os.MkdirAll(installDir, 0755)
@@ -196,16 +196,15 @@ slugs:
 	}
 
 	fmt.Printf("\n✓ Binary installed to: %s\n", destPath)
-	fmt.Printf("✓ Config created at: %s\n", configPath)
 	fmt.Printf("\nOpen config file in %s? [Y/n]: ", editor)
 
 	response := readInput()
 	if response == "" || strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" {
-		cmd := exec.Command(editor, configPath)
+		cmd := exec.Command(editor, configOutPath)
 		cmd.Run()
 	} else {
 		fmt.Printf("\nNext steps:\n")
-		fmt.Printf("1. Edit %s to add your branch mappings\n", configPath)
+		fmt.Printf("1. Edit %s to add your branch mappings\n", configOutPath)
 		fmt.Printf("2. Add the shell function to your .bashrc or .zshrc for seamless integration\n")
 		fmt.Printf("3. Make sure %s is in your PATH\n", installDir)
 	}

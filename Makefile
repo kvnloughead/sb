@@ -29,9 +29,23 @@ build-all: build
 # TESTS
 # ============================================================		
 	
-## test: run Go tests
+## test: run Go tests verbosely
 test:
-	go test ./...
+	go test -v ./...
+
+## cover: run tests with coverage report
+cover:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out | tail -n 1
+
+# ============================================================
+# GIT HOOKS
+# ============================================================
+
+## hooks: enable local git hooks to prevent pushing if tests fail
+hooks:
+	git config core.hooksPath .githooks
+	chmod +x .githooks/pre-push
 
 # ============================================================
 # HELPERS

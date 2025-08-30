@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Abort push if tests fail
+set -euo pipefail
+
+# Run tests quickly before allowing push
+echo "Running tests before push..."
+if ! go test ./...; then
+  echo "Tests failed. Aborting push."
+  exit 1
+fi
+
+echo "Tests passed. Proceeding with push."
+exit 0
