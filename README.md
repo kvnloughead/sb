@@ -1,6 +1,6 @@
 # sb CLI Tool
 
-A simple Go command-line tool to switch to a git repository directory and optionally check out a branch using an alias.
+A simple Go command-line tool to switch to a git repository directory and optionally check out a branch using an alias. It's primary use case is for a repository with many different long-living branches.
 
 ## Features
 
@@ -13,7 +13,7 @@ A simple Go command-line tool to switch to a git repository directory and option
 
 ### Option A: Installer (recommended)
 
-- If you're in this repo, you can run it directly: `./sb install`
+- If you're in this repo, run `make build` followed by `./sb install`
 - If the binary is already on your PATH, run: `sb install`
 
 The installer will:
@@ -90,6 +90,13 @@ make hooks
 ```
 
 After that, every `git push` will run `go test ./...` first and abort on failures.
+
+## Troubleshooting installation/run
+
+- If `sb` appears to do nothing but `./sb install` works, your shell function wrapper may be swallowing errors. Bypass the wrapper with:
+  - `command sb install`
+  - or temporarily rename/remove the wrapper function in your shell config.
+- Prefer installing from a release binary: download for your OS, then run `./sb-* install` (or `sb install` if it’s already on your PATH). The installer will copy the binary to `~/.local/bin` by default.
 
 ## License
 MIT

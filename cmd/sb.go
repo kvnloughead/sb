@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,7 +19,7 @@ func main() {
 
 	// Handle install command
 	if len(args) > 0 && args[0] == "install" {
-		runInstaller()
+		runInstaller(args[1:])
 		return
 	}
 
@@ -67,6 +68,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate that the repo directory exists before proceeding
+	if fi, statErr := os.Stat(absDir); statErr != nil || !fi.IsDir() {
+		if os.IsNotExist(statErr) {
+			fmt.Fprintf(os.Stderr, "Repository directory does not exist: %s\n", absDir)
+		} else if statErr != nil {
+			fmt.Fprintf(os.Stderr, "Error accessing repository directory %s: %v\n", absDir, statErr)
+		} else {
+			fmt.Fprintf(os.Stderr, "Repository path is not a directory: %s\n", absDir)
+		}
+		os.Exit(1)
+	}
+
 	// If running in a shell function, print info for wrapper
 	if os.Getenv("SB_SHELL_WRAPPER") == "1" {
 		fmt.Printf("DIR:%s\n", absDir)
@@ -94,9 +107,32 @@ func main() {
 }
 
 // runInstaller prompts the user for configuration and sets up sb
-func runInstaller() {
+func runInstaller(argv []string) {
 	fmt.Println("Welcome to sb installer!")
 	fmt.Println()
+
+	// Flags for non-interactive / scripted installs
+	fs := flag.NewFlagSet("install", flag.ContinueOnError)
+	var (
+		flagDir    string
+		flagRepo   string
+		flagEditor string
+		flagYes    bool
+		flagNoOpen bool
+	)
+	fs.StringVar(&flagDir, "dir", "", "install directory (default ~/.local/bin)")
+	fs.StringVar(&flagRepo, "repo", "", "repository path (default ~/repo)")
+	fs.StringVar(&flagEditor, "editor", "", "editor command to open config (default 'code')")
+	fs.BoolVar(&flagYes, "yes", false, "accept defaults; do not prompt")
+	fs.BoolVar(&flagYes, "y", false, "shorthand for --yes")
+	fs.BoolVar(&flagNoOpen, "no-open", false, "do not prompt to open the config file")
+	_ = fs.Parse(argv)
+
+	// If launched via a shell wrapper and we're about to prompt, exit with guidance to avoid hangs
+	if os.Getenv("SB_SHELL_WRAPPER") == "1" && !flagYes && flagDir == "" && flagRepo == "" && flagEditor == "" {
+		fmt.Fprintln(os.Stderr, "Detected shell wrapper. Run 'command sb install' or pass --yes/--dir/--repo/--editor flags to avoid prompts.")
+		os.Exit(2)
+	}
 
 	// Get current executable path
 	execPath, err := os.Executable()
@@ -116,16 +152,25 @@ func runInstaller() {
 		}
 	}
 
-	// Get current executable path
-	execPath, err = os.Executable()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
-		os.Exit(1)
+	// Re-resolve executable path (absolute + symlinks)
+	if abs, err := filepath.Abs(execPath); err == nil {
+		execPath = abs
+	}
+	if link, err := filepath.EvalSymlinks(execPath); err == nil && link != "" {
+		execPath = link
 	}
 
-	// Prompt for install directory
-	fmt.Printf("Where would you like to install sb? [~/.local/bin]: ")
-	installDir := readInput()
+	// Install directory
+	var installDir string
+	if flagDir != "" {
+		installDir = flagDir
+	} else if flagYes {
+		home, _ := os.UserHomeDir()
+		installDir = filepath.Join(home, ".local", "bin")
+	} else {
+		fmt.Printf("Where would you like to install sb? [~/.local/bin]: ")
+		installDir = readInput()
+	}
 	if installDir == "" {
 		home, _ := os.UserHomeDir()
 		installDir = filepath.Join(home, ".local", "bin")
@@ -134,16 +179,30 @@ func runInstaller() {
 		installDir = filepath.Join(home, installDir[2:])
 	}
 
-	// Prompt for repo path
-	fmt.Printf("What is your repository path? [~/repo]: ")
-	repoPath := readInput()
+	// Repo path
+	var repoPath string
+	if flagRepo != "" {
+		repoPath = flagRepo
+	} else if flagYes {
+		repoPath = "~/repo"
+	} else {
+		fmt.Printf("What is your repository path? [~/repo]: ")
+		repoPath = readInput()
+	}
 	if repoPath == "" {
 		repoPath = "~/repo"
 	}
 
-	// Prompt for editor
-	fmt.Printf("What is your preferred editor? [code]: ")
-	editor := readInput()
+	// Editor
+	var editor string
+	if flagEditor != "" {
+		editor = flagEditor
+	} else if flagYes {
+		editor = "code"
+	} else {
+		fmt.Printf("What is your preferred editor? [code]: ")
+		editor = readInput()
+	}
 	if editor == "" {
 		editor = "code"
 	}
@@ -160,20 +219,24 @@ func runInstaller() {
 		fmt.Fprintf(os.Stderr, "Error creating config directory: %v\n", err)
 		os.Exit(1)
 	}
-	// Create config file with example (use aliases)
-	configContent := fmt.Sprintf(`repo: %s
+	// Create config file with example (use aliases) if it doesn't already exist
+	if _, err := os.Stat(configOutPath); err == nil {
+		fmt.Printf("✓ Config already exists: %s (leaving it unchanged)\n", configOutPath)
+	} else {
+		configContent := fmt.Sprintf(`repo: %s
 aliases:
-	# Add your branch aliases here
-	# Examples:
-	# main: main
-	# dev: development
-	# feature: feature-branch
+  # Add your branch aliases here. Use spaces for indenting.
+  # Examples:
+  # main: main
+  # dev: development
+  # feature: feature-branch
 `, repoPath)
-	if err := os.WriteFile(configOutPath, []byte(configContent), 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating config file: %v\n", err)
-		os.Exit(1)
+		if err := os.WriteFile(configOutPath, []byte(configContent), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating config file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("✓ Config created at: %s\n", configOutPath)
 	}
-	fmt.Printf("✓ Config created at: %s\n", configOutPath)
 
 	// Install binary
 	err = os.MkdirAll(installDir, 0755)
@@ -183,30 +246,52 @@ aliases:
 	}
 
 	destPath := filepath.Join(installDir, "sb")
-	err = copyFile(execPath, destPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error installing binary: %v\n", err)
-		os.Exit(1)
+	// Resolve destination for robust comparison
+	destResolved := destPath
+	if abs, err := filepath.Abs(destResolved); err == nil {
+		destResolved = abs
+	}
+	if link, err := filepath.EvalSymlinks(destResolved); err == nil && link != "" {
+		destResolved = link
 	}
 
-	err = os.Chmod(destPath, 0755)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error setting binary permissions: %v\n", err)
-		os.Exit(1)
+	same := false
+	if si, err1 := os.Stat(execPath); err1 == nil {
+		if di, err2 := os.Stat(destResolved); err2 == nil {
+			same = os.SameFile(si, di)
+		}
 	}
 
-	fmt.Printf("\n✓ Binary installed to: %s\n", destPath)
-	fmt.Printf("\nOpen config file in %s? [Y/n]: ", editor)
-
-	response := readInput()
-	if response == "" || strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" {
-		cmd := exec.Command(editor, configOutPath)
-		cmd.Run()
+	if same {
+		// Avoid copying a file onto itself (would truncate). Just ensure perms.
+		if err := os.Chmod(destResolved, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting binary permissions: %v\n", err)
+			os.Exit(1)
+		}
 	} else {
-		fmt.Printf("\nNext steps:\n")
-		fmt.Printf("1. Edit %s to add your branch mappings\n", configOutPath)
-		fmt.Printf("2. Add the shell function to your .bashrc or .zshrc for seamless integration\n")
-		fmt.Printf("3. Make sure %s is in your PATH\n", installDir)
+		if err := copyFileAtomic(execPath, destResolved); err != nil {
+			fmt.Fprintf(os.Stderr, "Error installing binary: %v\n", err)
+			os.Exit(1)
+		}
+		if err := os.Chmod(destResolved, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting binary permissions: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	fmt.Printf("\n✓ Binary installed to: %s\n", destResolved)
+	if !flagNoOpen && !flagYes {
+		fmt.Printf("\nOpen config file in %s? [Y/n]: ", editor)
+		response := readInput()
+		if response == "" || strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" {
+			cmd := exec.Command(editor, configOutPath)
+			cmd.Run()
+		} else {
+			fmt.Printf("\nNext steps:\n")
+			fmt.Printf("1. Edit %s to add your branch mappings\n", configOutPath)
+			fmt.Printf("2. Add the shell function to your .bashrc or .zshrc for seamless integration\n")
+			fmt.Printf("3. Make sure %s is in your PATH\n", installDir)
+		}
 	}
 }
 
@@ -233,4 +318,39 @@ func copyFile(src, dst string) error {
 
 	_, err = destFile.ReadFrom(sourceFile)
 	return err
+}
+
+// copyFileAtomic copies src to dst via a temporary file and atomic rename.
+func copyFileAtomic(src, dst string) error {
+	dir := filepath.Dir(dst)
+	tmp, err := os.CreateTemp(dir, ".sb-tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	// Ensure cleanup on failure
+	defer func() {
+		tmp.Close()
+		os.Remove(tmpPath)
+	}()
+
+	// Copy contents
+	srcF, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcF.Close()
+
+	if _, err := tmp.ReadFrom(srcF); err != nil {
+		return err
+	}
+	if err := tmp.Chmod(0755); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	// Atomic replace
+	return os.Rename(tmpPath, dst)
 }
