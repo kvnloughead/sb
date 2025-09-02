@@ -1,6 +1,8 @@
 # sb CLI Tool
 
-A simple Go command-line tool to switch to a git repository directory and optionally check out a branch using an alias. It's primary use case is for a repository with many different long-living branches.
+A simple Go command-line tool for easy switching between git branches. It lets you set aliases for branches and switch to them with `sb <alias>`. Its use case is a bit niche. But if you have a repo with a lot of long-lasting branches in it that you need to periodically refer to, this tool can help you avoid the pain of trying to remember the names of the branches. There is an optional script to enable tab completions.
+
+Not tested on Windows yet.
 
 ## Features
 
@@ -9,48 +11,29 @@ A simple Go command-line tool to switch to a git repository directory and option
 - Configurable mapping of alias to branch and repo path.
 - Config file location is user-defined, defaulting to `~/.config/sb.yaml`. To place the file somewhere else, set the `SB_CONFIG` environmental variable.
 
-## Installation
-
-### Option A: Installer (recommended)
-
-- If you're in this repo, run `make build` followed by `./sb install`
-- If the binary is already on your PATH, run: `sb install`
-
-The installer will:
-- Create a starter config at `~/.config/sb.yaml` (or your chosen location)
-- Copy the binary to an install directory (default: `~/.local/bin`)
-- Optionally open the config in your editor
-
-When finished, ensure the chosen install directory is on your PATH.
-
-### Option B: Manual installation from source
-
-Prerequisites: Go toolchain installed.
-
-Using the Makefile:
-
-```sh
-make build      # builds local binary ./sb
-make install    # installs to ~/.local/bin
-make build-all  # cross-compile binaries into ./bin
-```
-
-Or directly via Go:
-
-```sh
-go build -o sb ./cmd/sb.go
-install -d ~/.local/bin
-install sb ~/.local/bin/sb
-```
-
-Then either run `sb install` to generate a starter config, or create the config file manually (see below).
-
 ## Usage
+
+It's very simple.
 
 ```sh
 sb           # switches to the repo directory
 sb dev       # switches to the repo directory and checks out the branch mapped to alias 'dev'
 ```
+
+## Installation
+
+It is recommended to install from the latest release, but instructions for installing from source are at the bottom of this page.
+
+- Download the [latest release](https://github.com/kvnloughead/sb/releases/) 
+- Run: `sb-* install`
+
+The installer will:
+
+- Create a starter config at `~/.config/sb.yaml` (or your chosen location)
+- Copy the binary to an install directory (default: `~/.local/bin`)
+- Optionally open the config in your editor
+
+When finished, make sure the chosen install directory is on your PATH.
 
 ## Configuration
 
@@ -76,10 +59,36 @@ You can specify a custom config file location with the `SB_CONFIG` environment v
 To preserve shell history and enable tab-completions for branch aliases, use the scripts in [SCRIPTS.md](SCRIPTS.md).
 
 Included:
+
 - A wrapper function that preserves history when changing directories
 - Bash completions that list your configured aliases
 
 Add them to your shell config (e.g., `~/.bashrc`, `~/.bash_profile`, or `~/.zshrc`) and reload your shell.
+
+## License
+MIT
+
+## Manual installation from source
+
+Prerequisites: Go toolchain installed.
+
+Using the Makefile:
+
+```sh
+make build      # builds local binary ./sb
+make install    # installs to ~/.local/bin
+make build-all  # cross-compile binaries into ./bin
+```
+
+Or directly via Go:
+
+```sh
+go build -o sb ./cmd/sb.go
+install -d ~/.local/bin
+install sb ~/.local/bin/sb
+```
+
+Then either run `sb install` to generate a starter config, or create the config file manually (see below).
 
 ## Local development: block pushes if tests fail
 
@@ -90,14 +99,4 @@ make hooks
 ```
 
 After that, every `git push` will run `go test ./...` first and abort on failures.
-
-## Troubleshooting installation/run
-
-- If `sb` appears to do nothing but `./sb install` works, your shell function wrapper may be swallowing errors. Bypass the wrapper with:
-  - `command sb install`
-  - or temporarily rename/remove the wrapper function in your shell config.
-- Prefer installing from a release binary: download for your OS, then run `./sb-* install` (or `sb install` if it’s already on your PATH). The installer will copy the binary to `~/.local/bin` by default.
-
-## License
-MIT
 
